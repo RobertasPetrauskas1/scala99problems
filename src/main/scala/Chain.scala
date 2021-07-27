@@ -16,25 +16,27 @@ object Chain {
     else Link(items.head, apply(items.tail: _*))
   }
 
-  final def repeat[A](n: Int, e: A): Chain[A] = {
+  final def repeat[A](times: Int, element: A): Chain[A] = {
     @tailrec
-    def loop(counter: Int, out: Chain[A] = Hole): Chain[A] = {
+    def loop(counter: Int, out: Chain[A] = Hole): Chain[A] =
       if (counter == 0) out
-      else loop(counter - 1, Link(e, out))
-    }
+      else loop(counter - 1, Link(element, out))
 
-    loop(n)
+    loop(times)
   }
 
-  final def decode[A](ls: Chain[(Int, A)]): Chain[A] = {
-    def loop(in: Chain[(Int, A)]): Chain[A] = {
-      in match {
-        case Link((n, e), Hole) => repeat(n, e)
-        case Link((n, e), tail) => repeat(n, e) ::: loop(tail)
+  implicit class EncodedChainImplicits[A](chain: Chain[(Int, A)]) {
+    final def decode: Chain[A] = {
+      def loop(in: Chain[(Int, A)]): Chain[A] = {
+        in match {
+          case Hole => Hole
+          case Link((n, e), Hole) => repeat(n, e)
+          case Link((n, e), tail) => repeat(n, e) ++ loop(tail)
+        }
       }
-    }
 
-    loop(ls)
+      loop(chain)
+    }
   }
 
   implicit class ChainImplicits[A](chain: Chain[A]) {
@@ -90,6 +92,8 @@ object Chain {
         }
       }
 
+      if (chain.size <= 1) throw new NoSuchElementException
+
       loop(chain)
     }
 
@@ -98,7 +102,7 @@ object Chain {
       def loop(in: Chain[A], count: Int = i): A = {
         in match {
           case Link(a, _) if count == 0 => a
-          case Link(_, tail) if count != 0 => loop(tail, count - 1)
+          case Link(_, tail) => loop(tail, count - 1)
         }
       }
 
@@ -134,26 +138,36 @@ object Chain {
       loop(chain).reverse
     }
 
+    //    final def compress: Chain[A] = {
+    //      @tailrec
+    //      def loop(in: Chain[A], out: Chain[A] = Hole): Chain[A] = {
+    //        in match {
+    //          case Link(a, Link(b, Hole)) if a == b => Link(b, out)
+    //          case Link(a, Link(b, Hole)) => Link(a, Link(b, out))
+    //          case Link(a, Link(b, tail)) if a == b => loop(Link(b, tail), out)
+    //          case Link(a, Link(b, tail)) => loop(Link(b, tail), Link(a, out))
+    //        }
+    //      }
+    //
+    //      if (chain.size <= 1) chain
+    //      else loop(chain).reverse
+    //    }
     final def compress: Chain[A] = {
-      @tailrec
-      def loop(in: Chain[A], out: Chain[A] = Hole): Chain[A] = {
+      def loop(in: Chain[A]): Chain[A] = {
         in match {
-          case Link(a, Link(b, Hole)) if a == b => Link(b, out)
-          case Link(a, Link(b, Hole)) if a != b => Link(a, Link(b, out))
-          case Link(a, Link(b, tail)) if a == b => loop(Link(b, tail), out)
-          case Link(a, Link(b, tail)) if a != b => loop(Link(b, tail), Link(a, out))
+          case Hole => Hole
+          case Link(head, tail) => head +: loop(tail.dropWhile(_ == head))
         }
       }
 
-      if (chain.isEmpty || chain.size == 1) chain
-      else loop(chain).reverse
+      if (chain.size <= 1) chain
+      else loop(chain)
     }
 
     final def takeWhile(p: A => Boolean): Chain[A] = {
       @tailrec
       def loop(in: Chain[A], out: Chain[A] = Hole): Chain[A] = {
         in match {
-          case Link(e, Hole) if p(e) => Link(e, out)
           case Link(e, tail) if p(e) => loop(tail, Link(e, out))
           case _ => out
         }
@@ -166,9 +180,8 @@ object Chain {
       @tailrec
       def loop(in: Chain[A]): Chain[A] = {
         in match {
-          case Link(e, _) if !p(e) => in
-          case Link(e, Hole) if p(e) => Hole
           case Link(e, tail) if p(e) => loop(tail)
+          case _ => in
         }
       }
 
@@ -191,6 +204,7 @@ object Chain {
       @tailrec
       def loop(in: Chain[Chain[A]], out: Chain[(Int, A)] = Hole): Chain[(Int, A)] = {
         in match {
+          case Hole => out
           case Link(a, Hole) => Link((a.size, a.head), out)
           case Link(a, tail) => loop(tail, Link((a.size, a.head), out))
         }
@@ -199,19 +213,20 @@ object Chain {
       loop(chain.pack).reverse
     }
 
-    final def ::(e: A): Chain[A] = {
+    final def +:(e: A): Chain[A] = {
       Link(e, chain)
     }
 
-    final def :::(ls: Chain[A]): Chain[A] = {
+    final def ++(ls: Chain[A]): Chain[A] = {
       @tailrec
       def loop(in: Chain[A], out: Chain[A]): Chain[A] = {
         in match {
-          case Link(a, Hole) => a :: out
-          case Link(a, tail) => loop(tail, a :: out)
+          case Link(a, Hole) => a +: out
+          case Link(a, tail) => loop(tail, a +: out)
         }
       }
-      loop(ls.reverse, chain)
+
+      loop(chain.reverse, ls)
     }
 
   }
