@@ -1,5 +1,3 @@
-import Chain.ChainImplicits
-
 import scala.annotation.tailrec
 import scala.language.postfixOps
 
@@ -140,8 +138,7 @@ object Chain {
         case Link(head, tail) => loop(tail.dropWhile(_ == head), out :+ head)
       }
 
-      if (chain.size <= 1) chain
-      else loop(chain)
+      loop(chain)
     }
 
     final def takeWhile(p: A => Boolean): Chain[A] = {
@@ -195,8 +192,19 @@ object Chain {
         case Link(a, Hole) => a +: out
         case Link(a, tail) => loop(tail, a +: out)
       }
-      if(chain.isEmpty) ls
+
+      if (chain.isEmpty) ls
       else loop(chain.reverse, ls)
+    }
+
+    final def duplicate(times: Int): Chain[A] = {
+      @tailrec
+      def loop(in: Chain[A], out: Chain[A] = Hole): Chain[A] = in match {
+        case Hole => out
+        case Link(head, tail) => loop(tail, out ++ repeat(times, head))
+      }
+      if (times < 1) throw new IllegalArgumentException
+      loop(chain)
     }
 
   }

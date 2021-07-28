@@ -124,4 +124,14 @@ class Tests extends AnyFlatSpec {
 
     Chain().decode shouldBe Chain()
   }
+
+  "P13 - duplicate" should "duplicate each element in the chain the given number of times" in {
+    Chain(1, 2, 3).duplicate(3) shouldBe Chain(1, 1, 1, 2, 2, 2, 3, 3, 3)
+  }
+
+  it should "throw IllegalArgumentException if given number of times to duplicate is less than 1" in {
+    intercept[IllegalArgumentException] {
+      Chain(1).duplicate(0)
+    }
+  }
 }
