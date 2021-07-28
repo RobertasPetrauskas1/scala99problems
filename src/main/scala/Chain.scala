@@ -131,10 +131,13 @@ object Chain {
     //      if (chain.size <= 1) chain
     //      else loop(chain).reverse
     //    }
+
+    //aabbcdd => abcd
     final def compress: Chain[A] = {
-      def loop(in: Chain[A]): Chain[A] = in match {
-        case Hole => Hole
-        case Link(head, tail) => head +: loop(tail.dropWhile(_ == head))
+      @tailrec
+      def loop(in: Chain[A], out: Chain[A] = Hole): Chain[A] = in match {
+        case Hole => out
+        case Link(head, tail) => loop(tail.dropWhile(_ == head), out :+ head)
       }
 
       if (chain.size <= 1) chain
@@ -184,13 +187,16 @@ object Chain {
 
     final def +:(e: A): Chain[A] = Link(e, chain)
 
+    final def :+(e: A): Chain[A] = chain ++ Chain(e)
+
     final def ++(ls: Chain[A]): Chain[A] = {
       @tailrec
       def loop(in: Chain[A], out: Chain[A]): Chain[A] = in match {
         case Link(a, Hole) => a +: out
         case Link(a, tail) => loop(tail, a +: out)
       }
-      loop(chain.reverse, ls)
+      if(chain.isEmpty) ls
+      else loop(chain.reverse, ls)
     }
 
   }

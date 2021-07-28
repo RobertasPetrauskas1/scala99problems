@@ -36,6 +36,10 @@ class Tests extends AnyFlatSpec {
     Chain(1, 2) ++ Chain(3, 4) shouldBe Chain(1, 2, 3, 4)
   }
 
+  ":+" should "append element to end of chain" in {
+    Chain(1, 2) :+ 3 shouldBe Chain(1, 2, 3)
+  }
+
   "P1 - last" should "return last item" in {
     Chain(1, 1, 2, 3, 5, 8).last shouldBe 8
   }
